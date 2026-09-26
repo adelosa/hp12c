@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=12c Financial Calculator
+GenericName=Financial Calculator
+Comment=RPN calculator styled on the classic HP 12c
+Exec=hp12c-run
+Icon=accessories-calculator
+Terminal=false
+Categories=Calculator;Finance;Utility;
+StartupWMClass=twelve-c
