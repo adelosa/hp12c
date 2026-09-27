@@ -114,6 +114,18 @@ class EngineTests(unittest.TestCase):
         tap(c, "rcl", "pmt", "add")
         self.assertClose(c.x, -143.11)
 
+    def test_payment_mode_keys_and_begin_indicator(self):
+        c = HP12C()
+        self.assertFalse(c.begin)
+        self.assertFalse(c.annunciators()["BEGIN"])
+        tap(c, "g", "7")
+        self.assertTrue(c.begin)
+        self.assertTrue(c.annunciators()["BEGIN"])
+        self.assertFalse(c.annunciators()["g"])
+        tap(c, "g", "8")
+        self.assertFalse(c.begin)
+        self.assertFalse(c.annunciators()["BEGIN"])
+
     def test_begin_future_value(self):
         c = self.fresh()
         num(c, "2")

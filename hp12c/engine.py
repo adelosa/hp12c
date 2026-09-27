@@ -950,9 +950,13 @@ class HP12C:
             elif kind == "dys":
                 self._date_diff()
             elif kind == "beg":
+                self._end_entry()
                 self.begin = True
+                self.lift = True
             elif kind == "end":
+                self._end_entry()
                 self.begin = False
+                self.lift = True
             elif kind == "dmy":
                 self.dmy = True
             elif kind == "mdy":

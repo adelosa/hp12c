@@ -80,6 +80,10 @@ button.help-link label {
   font-weight: 800;
   color: #1a1c12;
   margin-right: 10px;
+  opacity: 0;
+}
+.ann.lit {
+  opacity: 1;
 }
 .hint {
   font-family: "DejaVu Sans Mono", monospace;
@@ -334,6 +338,7 @@ class CalculatorWindow(Gtk.ApplicationWindow):
         self._build()
         self.refresh()
         key = Gtk.EventControllerKey()
+        key.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
         key.connect("key-pressed", self._on_key)
         self.add_controller(key)
         self.connect("close-request", self._on_close)
@@ -532,10 +537,12 @@ class CalculatorWindow(Gtk.ApplicationWindow):
         self.dow.set_text(view["dow"])
         flags = self.eng.annunciators()
         for name, lab in self._ann_labels.items():
-            if flags.get(name):
-                lab.add_css_class("on")
+            lit = bool(flags.get(name))
+            if lit:
+                lab.add_css_class("lit")
             else:
-                lab.remove_css_class("on")
+                lab.remove_css_class("lit")
+            lab.set_opacity(1.0 if lit else 0.0)
         hint = flags.get("hint") or ""
         if flags.get("run"):
             hint = (hint + "  running").strip()
@@ -547,6 +554,7 @@ class CalculatorWindow(Gtk.ApplicationWindow):
         self.plate.set_text(
             "   ".join(
                 [
+                    "BEGIN" if e.begin else "END",
                     f"n {e.format_number(e.n)}",
                     f"i {e.format_number(e.i)}",
                     f"PV {e.format_number(e.pv)}",
