@@ -373,6 +373,7 @@ class HP12C:
         self.overlay = None
         self.date_dow = None
         self.payments_amortized = 0
+        self._held = set()
 
     # -- persistence --------------------------------------------------------
 
@@ -646,6 +647,9 @@ class HP12C:
         self.overlay = None
         self.mantissa_hold = False
         if key == "on":
+            if not self.on and "sub" in self._held:
+                self._memory_reset()
+                return
             self.on = not self.on
             self.prefix = None
             self.running = False
@@ -663,6 +667,13 @@ class HP12C:
             self._store(action)
         else:
             self._exec(action)
+
+    def hold(self, key: str):
+        """Mark a key as down. Used for the off, hold −, ON memory reset."""
+        self._held.add(key)
+
+    def release(self, key: str):
+        self._held.discard(key)
 
     def release_mantissa(self):
         self.mantissa_hold = False
@@ -1822,6 +1833,14 @@ class HP12C:
         if line != 0 and (line > self.alloc or line > 99):
             raise CalcError(4)
         self.pc = line
+
+    def _memory_reset(self):
+        """Clear continuous memory and restore the factory defaults."""
+        held = set(self._held)
+        self.__dict__.update(HP12C().__dict__)
+        self._held = held
+        self.on = True
+        self.pr_error = True
 
 
 def _reg_name(target) -> str:

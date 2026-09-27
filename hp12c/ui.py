@@ -228,7 +228,7 @@ TIPS = {
     "swap": "Swap X and Y.\nGold f: clear the financial registers. Blue g: test x≤y.",
     "clx": "Clear X.\nGold f: clear registers. Blue g: test x=0.",
     "enter": "Enter. Copies X into Y and drops stack-lift.\nGold f: cancel a prefix and show all 10 digits. Blue g: LAST X.",
-    "on": "Blank the display. Continuous memory is kept. Press again to wake.",
+    "on": "Blank the display. Continuous memory is kept. Press again to wake.\nWith the calculator off, hold − and press ON to reset memory.",
     "f": "Gold prefix. Then a digit sets the number of decimal places. f · is scientific notation.",
     "g": "Blue prefix.",
     "sto": "Store X. Then 0–9, · 0–9, or n i PV PMT FV.\nSTO + − × ÷ then 0–4 does register arithmetic.\nSTO EEX toggles compound interest for an odd period.",
@@ -318,6 +318,11 @@ Keyboard
   Backspace            CLx
   Ctrl+C               copy the display
   F1                   this guide
+
+Reset
+  ON                   turn the calculator off (memory is kept)
+  hold −, then ON      clear all registers and restore the defaults
+  The display shows Pr Error. Any key then continues.
 """
 
 
@@ -335,11 +340,13 @@ class CalculatorWindow(Gtk.ApplicationWindow):
         self.eng = HP12C()
         self._load()
         self._ann_labels = {}
+        self._held_keys = set()
         self._build()
         self.refresh()
         key = Gtk.EventControllerKey()
         key.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
         key.connect("key-pressed", self._on_key)
+        key.connect("key-released", self._on_key_release)
         self.add_controller(key)
         self.connect("close-request", self._on_close)
 
@@ -489,9 +496,23 @@ class CalculatorWindow(Gtk.ApplicationWindow):
         tip = TIPS.get(key_id)
         if tip:
             button.set_tooltip_text(tip)
-        button.connect("clicked", lambda *_b, k=key_id: self._press(k))
+        click = Gtk.GestureClick()
+        click.connect("pressed", lambda *_a, k=key_id: self._down(k))
+        click.connect("released", lambda *_a, k=key_id: self._up(k))
+        button.add_controller(click)
         box.append(button)
         return box
+
+    def _down(self, key: str):
+        if key in self._held_keys:
+            return
+        self._held_keys.add(key)
+        self.eng.hold(key)
+        self._press(key)
+
+    def _up(self, key: str):
+        self._held_keys.discard(key)
+        self.eng.release(key)
 
     def _press(self, key: str):
         self.eng.press(key)
@@ -608,7 +629,15 @@ class CalculatorWindow(Gtk.ApplicationWindow):
         mapped = _shortcut(name)
         if mapped is None:
             return False
-        self._press(mapped)
+        self._down(mapped)
+        return True
+
+    def _on_key_release(self, _controller, keyval, _keycode, _state):
+        name = Gdk.keyval_name(keyval) or ""
+        mapped = _shortcut(name)
+        if mapped is None:
+            return False
+        self._up(mapped)
         return True
 
     def _copy(self):
