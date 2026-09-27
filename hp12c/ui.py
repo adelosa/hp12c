@@ -540,8 +540,6 @@ class CalculatorWindow(Gtk.ApplicationWindow):
             lit = bool(flags.get(name))
             lab.set_opacity(1.0 if lit else 0.28)
         hint = flags.get("hint") or ""
-        if not hint:
-            hint = "D.MY" if self.eng.dmy else "M.DY"
         if flags.get("run"):
             hint = (hint + "  running").strip()
         self.hint.set_text(hint)
