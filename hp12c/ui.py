@@ -80,10 +80,6 @@ button.help-link label {
   font-weight: 800;
   color: #1a1c12;
   margin-right: 10px;
-  opacity: 0;
-}
-.ann.lit {
-  opacity: 1;
 }
 .hint {
   font-family: "DejaVu Sans Mono", monospace;
@@ -291,7 +287,11 @@ Depreciation
   x↔y shows the remaining depreciable value
 
 Dates
-  g M.DY or g D.MY chooses the order
+  A date is a number: month . day year, or day . month year.
+  28 April 2004 is 4.282004 in M.DY, and 28.042004 in D.MY.
+  g 4 (D.MY) switches to day.month.year and lights the D.MY flag.
+  g 5 (M.DY) switches back to month.day.year.
+  The year stays on the display once the date is complete.
   earlier ENTER later g ΔDYS     actual days; x↔y is the 30/360 count
   date ENTER days g DATE         new date, with weekday 1–7 at the right
   Monday is 1 and Sunday is 7
@@ -538,12 +538,10 @@ class CalculatorWindow(Gtk.ApplicationWindow):
         flags = self.eng.annunciators()
         for name, lab in self._ann_labels.items():
             lit = bool(flags.get(name))
-            if lit:
-                lab.add_css_class("lit")
-            else:
-                lab.remove_css_class("lit")
-            lab.set_opacity(1.0 if lit else 0.0)
+            lab.set_opacity(1.0 if lit else 0.28)
         hint = flags.get("hint") or ""
+        if not hint:
+            hint = "D.MY" if self.eng.dmy else "M.DY"
         if flags.get("run"):
             hint = (hint + "  running").strip()
         self.hint.set_text(hint)
@@ -554,15 +552,16 @@ class CalculatorWindow(Gtk.ApplicationWindow):
         self.plate.set_text(
             "   ".join(
                 [
+                    "D.MY" if e.dmy else "M.DY",
                     "BEGIN" if e.begin else "END",
-                    f"n {e.format_number(e.n)}",
-                    f"i {e.format_number(e.i)}",
-                    f"PV {e.format_number(e.pv)}",
-                    f"PMT {e.format_number(e.pmt)}",
-                    f"FV {e.format_number(e.fv)}",
-                    f"Y {e.format_number(e.y)}",
-                    f"Z {e.format_number(e.z)}",
-                    f"T {e.format_number(e.t)}",
+                    f"n {e.display(e.n)}",
+                    f"i {e.display(e.i)}",
+                    f"PV {e.display(e.pv)}",
+                    f"PMT {e.display(e.pmt)}",
+                    f"FV {e.display(e.fv)}",
+                    f"Y {e.display(e.y)}",
+                    f"Z {e.display(e.z)}",
+                    f"T {e.display(e.t)}",
                 ]
             )
         )

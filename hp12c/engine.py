@@ -436,6 +436,10 @@ class HP12C:
         }
 
     def _prefix_hint(self) -> str:
+        if self.prefix == "f":
+            return "f"
+        if self.prefix == "g":
+            return "g"
         if self.prefix == "sto_op" and self._sto_op:
             return "STO" + {"add": "+", "sub": "−", "mul": "×", "div": "÷"}[self._sto_op]
         if self.prefix in ("sto", "sto_dot"):
@@ -463,8 +467,63 @@ class HP12C:
             return {"text": self.overlay, "align": "left", "dow": "", "off": False}
         if self.program_mode:
             return {"text": self.format_line(self.pc), "align": "left", "dow": "", "off": False}
+        if self.entering:
+            return {"text": self.entry_text(), "align": "right", "dow": "", "off": False}
         dow = str(self.date_dow) if self.date_dow else ""
-        return {"text": self.format_number(self.x), "align": "right", "dow": dow, "off": False}
+        return {"text": self.display(self.x), "align": "right", "dow": dow, "off": False}
+
+    def display(self, value: float) -> str:
+        """FIX/SCI formatting, except a complete calendar date keeps its year."""
+        dated = self.format_date(value)
+        if dated is not None:
+            return dated
+        return self.format_number(value)
+
+    def entry_text(self) -> str:
+        """Digits as keyed, so a date's year is not rounded off by FIX."""
+        dec, _thou = self._sep()
+        body = (self._buf or "0").replace(".", dec)
+        if self._neg:
+            body = "-" + body
+        if self._exp_mode:
+            digits = (self._exp_digits or "0").rjust(2)
+            sign = "-" if self._exp_neg else " "
+            body = f"{body}{sign}{digits}"
+        return body
+
+    def format_date(self, value: float) -> str | None:
+        parts = self._date_parts(value)
+        if parts is None:
+            return None
+        first, second, year = parts
+        dec, _thou = self._sep()
+        return f"{first}{dec}{second:02d}{year:04d}"
+
+    def _date_parts(self, value: float):
+        """Month/day encoding MM.DDYYYY or DD.MMYYYY, or None if it is not a date."""
+        if not math.isfinite(value) or value <= 0 or value >= 100:
+            return None
+        scaled_f = value * 1_000_000
+        scaled = int(round(scaled_f))
+        if abs(scaled_f - scaled) > 1e-3:
+            return None
+        year = scaled % 10000
+        if year < 1582 or year > 4046:
+            return None
+        rest = scaled // 10000
+        second = rest % 100
+        first = rest // 100
+        if self.dmy:
+            day, month = first, second
+        else:
+            month, day = first, second
+        if not (1 <= month <= 12 and 1 <= day <= 31):
+            return None
+        try:
+            dt.date(year, month, day)
+        except ValueError:
+            return None
+        return first, second, year
 
     def format_number(self, value: float) -> str:
         if not math.isfinite(value):

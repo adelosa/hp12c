@@ -365,11 +365,45 @@ class EngineTests(unittest.TestCase):
         # 1 Jan 2004 is a Thursday (4); 1 Feb 2004 is a Sunday (7).
         self.assertEqual(c.date_dow, 7)
         self.assertAlmostEqual(c.x, 2.012004, places=6)
+        self.assertEqual(c.lcd()["text"], "2.012004")
+        self.assertEqual(c.lcd()["dow"], "7")
         num(c, "1.012004")
         tap(c, "enter")
         num(c, "2.012004")
         tap(c, "g", "eex")
         self.assertClose(c.x, 31)
+
+    def test_date_entry_keeps_the_year_and_mode(self):
+        c = HP12C()
+        self.assertFalse(c.annunciators()["D.MY"])
+        c.press("g")
+        self.assertTrue(c.annunciators()["g"])
+        self.assertEqual(c.annunciators()["hint"], "g")
+        c.press("4")
+        self.assertTrue(c.dmy)
+        self.assertTrue(c.annunciators()["D.MY"])
+        self.assertFalse(c.annunciators()["g"])
+        # 28 April 2004 in day.month.year. FIX 2 must not swallow the year.
+        num(c, "28.04")
+        self.assertEqual(c.lcd()["text"], "28.04")
+        num(c, "2004")
+        self.assertEqual(c.lcd()["text"], "28.042004")
+        tap(c, "enter")
+        self.assertEqual(c.lcd()["text"], "28.042004")
+        # g 5 returns to month.day.year. 28.042004 is not a valid month, so it
+        # falls back to the FIX display; g 4 recognises it as a date again.
+        tap(c, "g", "5")
+        self.assertFalse(c.dmy)
+        self.assertFalse(c.annunciators()["D.MY"])
+        self.assertEqual(c.lcd()["text"], "28.04")
+        tap(c, "g", "4")
+        self.assertEqual(c.lcd()["text"], "28.042004")
+        tap(c, "clx")
+        num(c, "4.282004")
+        tap(c, "g", "5")
+        self.assertEqual(c.lcd()["text"], "4.282004")
+        tap(c, "enter")
+        self.assertEqual(c.lcd()["text"], "4.282004")
 
     def test_program_adds(self):
         c = HP12C()
