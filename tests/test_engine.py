@@ -433,6 +433,18 @@ class EngineTests(unittest.TestCase):
         self.assertFalse(c.pr_error)
         self.assertEqual(c.lcd()["text"], "0.00")
 
+    def test_on_toggles_without_holding_minus(self):
+        c = HP12C()
+        num(c, "42")
+        tap(c, "enter")
+        tap(c, "on")
+        self.assertFalse(c.on)
+        self.assertEqual(c.lcd()["text"], "")
+        tap(c, "on")
+        self.assertTrue(c.on)
+        self.assertClose(c.x, 42, places=0)
+        self.assertEqual(c.lcd()["text"], "42.00")
+
     def test_program_adds(self):
         c = HP12C()
         tap(c, "f", "rs")          # program mode

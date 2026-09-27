@@ -496,23 +496,35 @@ class CalculatorWindow(Gtk.ApplicationWindow):
         tip = TIPS.get(key_id)
         if tip:
             button.set_tooltip_text(tip)
+        # Click runs the key. Pressed/released only track a held − for the
+        # off, hold minus, ON memory reset. Executing on press left ON stuck
+        # down when refresh() cancelled the gesture, so a second ON did nothing.
         click = Gtk.GestureClick()
-        click.connect("pressed", lambda *_a, k=key_id: self._down(k))
-        click.connect("released", lambda *_a, k=key_id: self._up(k))
+        click.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        click.connect("pressed", lambda *_a, k=key_id: self._hold(k))
+        click.connect("released", lambda *_a, k=key_id: self._release(k))
+        click.connect("cancel", lambda *_a, k=key_id: self._release(k))
         button.add_controller(click)
+        button.connect("clicked", lambda *_b, k=key_id: self._press(k))
         box.append(button)
         return box
+
+    def _hold(self, key: str):
+        self._held_keys.add(key)
+        self.eng.hold(key)
+
+    def _release(self, key: str):
+        self._held_keys.discard(key)
+        self.eng.release(key)
 
     def _down(self, key: str):
         if key in self._held_keys:
             return
-        self._held_keys.add(key)
-        self.eng.hold(key)
+        self._hold(key)
         self._press(key)
 
     def _up(self, key: str):
-        self._held_keys.discard(key)
-        self.eng.release(key)
+        self._release(key)
 
     def _press(self, key: str):
         self.eng.press(key)
